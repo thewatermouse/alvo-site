@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-
-# Block PDF audit report from indexing (it's a lead gen tool, not a page)
-Disallow: /alvo-agency-audit-report.pdf
-
-Sitemap: https://alvo.agency/sitemap.xml
