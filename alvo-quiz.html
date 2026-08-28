@@ -1209,11 +1209,24 @@ function showResults() {
   }, 400);
 }
 
+// Lead capture endpoint — paste your Apps Script Web App URL here (see alvo-apps-script.js)
+const SHEETS_ENDPOINT = 'YOUR_APPS_SCRIPT_URL_HERE';
+
 function unlockReport() {
   const email = document.getElementById('gate-email').value;
   if (!email || !email.includes('@')) {
     document.getElementById('gate-email').style.borderColor = '#C0544A';
     return;
+  }
+
+  // Capture the lead (email + score) — inactive until SHEETS_ENDPOINT is set
+  if (SHEETS_ENDPOINT !== 'YOUR_APPS_SCRIPT_URL_HERE') {
+    var _score = answers.filter(function(a, i){ return a === questions[i].correct; }).length;
+    fetch(SHEETS_ENDPOINT, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, quiz: 'Google Ads Proficiency Quiz', score_pct: Math.round(_score / questions.length * 100), source: 'quiz' })
+    }).catch(function(err){ console.warn('Lead capture failed:', err); });
   }
 
   // Hide gate, show full report
