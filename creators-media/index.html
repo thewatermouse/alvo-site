@@ -367,8 +367,8 @@
             </select>
           </div>
 
-          <!-- honeypot anti-spam -->
-          <div class="hp" aria-hidden="true"><label>Não preencha<input type="text" name="_gotcha" tabindex="-1" autocomplete="off"></label></div>
+          <!-- honeypot anti-spam (FormSubmit lê o campo _honey) -->
+          <div class="hp" aria-hidden="true"><label>Não preencha<input type="text" name="_honey" tabindex="-1" autocomplete="off"></label></div>
 
           <button type="submit" class="form-submit" id="form-submit">
             Quero participar
@@ -403,20 +403,21 @@
 
 <script>
   /* ============================================================
-     CAPTURA DE E-MAIL — LEIA ISTO
+     CAPTURA DE E-MAIL — FormSubmit (sem conta)
      ------------------------------------------------------------
-     Para armazenar os leads numa lista de verdade, crie um form
-     grátis no Formspree (https://formspree.io) com o e-mail
-     rodrigo@alvo.agency e cole o endpoint abaixo (ex:
-     "https://formspree.io/f/abcdwxyz").
+     Os leads são enviados direto pro e-mail abaixo via FormSubmit
+     (https://formsubmit.co) — não precisa de conta nem dashboard.
 
-     ENQUANTO o endpoint estiver como "REPLACE_ME", o formulário
-     NÃO fica quebrado: ele cai automaticamente no fallback de
-     e-mail (abre o app de e-mail do criador com tudo preenchido
-     pra rodrigo@alvo.agency). Ou seja, já funciona hoje — só
-     não guarda a lista automaticamente até você colar o endpoint.
+     ATIVAÇÃO (uma vez só): na primeira vez que o form for enviado,
+     o FormSubmit manda um e-mail de confirmação pra caixa do
+     rodrigo@alvo.agency. Basta clicar no link "Activate Form"
+     UMA vez. A partir daí, todos os envios chegam por e-mail.
+
+     Se o POST falhar por qualquer motivo, o form NÃO perde o lead:
+     cai automaticamente no fallback de mailto: (abre o app de
+     e-mail já preenchido). Ou seja, nunca fica só client-side.
      ============================================================ */
-  var FORMSPREE_ENDPOINT = "REPLACE_ME";           // <-- cole aqui o endpoint do Formspree
+  var FORMSUBMIT_ENDPOINT = "https://formsubmit.co/ajax/rodrigo@alvo.agency";
   var FALLBACK_EMAIL = "rodrigo@alvo.agency";      // fallback: pra onde o mailto: envia
 
   (function () {
@@ -470,7 +471,7 @@
       clearStatus();
 
       // honeypot: se estiver preenchido, é bot — finge sucesso e sai
-      if (form._gotcha && form._gotcha.value) { succeed(); return; }
+      if (form._honey && form._honey.value) { succeed(); return; }
 
       var d = collect();
       if (!d.nome || !d.perfil || !d.nicho || !d.audiencia || !d.frequencia) {
@@ -482,23 +483,23 @@
         return;
       }
 
-      // Sem endpoint configurado -> fallback por e-mail (funciona hoje)
-      if (!FORMSPREE_ENDPOINT || FORMSPREE_ENDPOINT === "REPLACE_ME") {
-        showStatus("ok", "Abrindo seu app de e-mail pra concluir o envio…");
-        mailtoFallback(d);
-        return;
-      }
-
-      // Endpoint configurado -> POST real via AJAX (fica na página)
+      // POST real via AJAX pro FormSubmit (fica na página)
       submitBtn.disabled = true;
       submitBtn.textContent = "Enviando…";
 
-      fetch(FORMSPREE_ENDPOINT, {
+      var fd = new FormData(form);
+      fd.append("_subject", "Novo interesse — rede de criadores");
+      fd.append("_template", "table");
+      fd.append("_captcha", "false");
+
+      fetch(FORMSUBMIT_ENDPOINT, {
         method: "POST",
         headers: { "Accept": "application/json" },
-        body: new FormData(form)
+        body: fd
       }).then(function (res) {
-        if (res.ok) { succeed(); }
+        return res.json().catch(function () { return {}; });
+      }).then(function (json) {
+        if (json && (json.success === "true" || json.success === true)) { succeed(); }
         else { throw new Error("bad response"); }
       }).catch(function () {
         // Se o POST falhar por qualquer motivo, não perde o lead: cai no e-mail
